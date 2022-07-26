@@ -1,20 +1,22 @@
 from socket import *
+from package import MyPackage
 
 serverName = 'localhost'
-serverPort = 12000
+remotePort = 12000
+localPort = 12001
 clientSocket = socket(AF_INET, SOCK_DGRAM)
-clientSocket.bind((serverName, serverPort))
-#message = input('Input lowercase sentence:')
-#clientSocket.sendto(message.encode(), (serverName, serverPort))
-#modifiedMessage, serverAddress = clientSocket.recvfrom(1024)
-#print (modifiedMessage.decode())
+clientSocket.bind((serverName, localPort))
+
+
 
 print ('Waiting...')
 while True:
     print ('\n------------\n')
     message, clientAddress = clientSocket.recvfrom(1024)
-    print (message.decode())
-    #clientSocket.sendto(modifiedMessage.encode(), clientAddress)
+    p=MyPackage()
+    p.myDecode(message)
+   # print(message)
+   # clientSocket.sendto("teste pelo amor de deus funciona".encode(), ("localhost", remotePort))
 
 print ('closing socket...')
 clientSocket.close()
