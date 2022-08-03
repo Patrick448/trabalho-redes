@@ -30,7 +30,7 @@ def moveAndFill(buffer, amount):
 		content=file.read(content_size)
 		p = MyPackage()
 		p.makePkg(content.decode(), seqNum)
-		seqNum += segment_size
+		seqNum += content_size
 		buffer.append(p)
 		bufferCount+=1
 
@@ -41,11 +41,18 @@ def fill(buffer, length):
 	while bufferCount < length:
 		file.seek(seqNum)
 		content=file.read(content_size)
+
+
 		p = MyPackage()
 		p.makePkg(content.decode(), seqNum)
-		seqNum += segment_size
+		seqNum += content_size
 		buffer.append(p)
+		print("Conteudo: " + p.content)
 		bufferCount+=1
+
+		if len(content) < content_size:
+			print("###################################################################################################################################")
+			break
 
 while seqNum < file_stats:
 	bufferCount = 0
@@ -66,11 +73,12 @@ while seqNum < file_stats:
 	for bufferItem in buffer:
 		serverSocket.sendto(bufferItem.myEncode(), (clientName, remotePort))
 		print("Enviou mensagem / num sequencia: " + str(bufferItem.seqNum))
+		#bufferItem.printPackage()
 		
 	#3. esperar ACKs
 	countAcks=0
 	print("entrou no loop do servidor de esperar a resposta do cliente")
-	while countAcks < bufferLength:
+	while countAcks < len(buffer):
 		message, clientAddress = serverSocket.recvfrom(segment_size)
 		countAcks+=1
 		ackPackage = MyPackage()

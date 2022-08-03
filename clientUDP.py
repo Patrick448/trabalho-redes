@@ -25,6 +25,7 @@ while isWhileEnabled:
     ack.makePkg("ACK", p.seqNum)
     clientSocket.sendto(ack.myEncode(), ("localhost", remotePort))
     print("ACK: " + str(p.seqNum+len(message)))
+    print(p.content)
 
 
 print ('\nFechando socket cliente UDP...')
