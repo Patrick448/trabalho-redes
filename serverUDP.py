@@ -16,7 +16,9 @@ file_stats = os.stat("document.bin").st_size
 
 seqNum = 0
 buffer=[]
-bufferLength=5
+bufferSize=5
+ackList = [0] * bufferSize
+
 
 def moveAndFill(buffer, amount):
 	count = 0
@@ -25,7 +27,7 @@ def moveAndFill(buffer, amount):
 		count+=1
 	
 	bufferCount = len(buffer) - amount
-	while bufferCount < bufferLength:
+	while bufferCount < bufferSize:
 		file.seek(seqNum)
 		content=file.read(content_size)
 		p = MyPackage()
@@ -57,7 +59,7 @@ def fill(buffer, length):
 while seqNum < file_stats:
 	bufferCount = 0
 	#1. popular o buffer
-	# while bufferCount < bufferLength:
+	# while bufferCount < bufferSize:
 	# 	file.seek(seqNum)
 	# 	content=file.read(content_size)
 	# 	p = MyPackage()
@@ -67,7 +69,7 @@ while seqNum < file_stats:
 	# 	bufferCount+=1
 
 	buffer.clear()
-	fill(buffer, bufferLength)
+	fill(buffer, bufferSize)
 
 	#2. enviar todos pacotes do buffer
 	for bufferItem in buffer:
@@ -84,8 +86,9 @@ while seqNum < file_stats:
 		ackPackage = MyPackage()
 		ackPackage.myDecode(message)
 		ackPackage.printPackage()
+		ackList[int((ackPackage.seqNum-MyPackage.CONTENT_SIZE/MyPackage.CONTENT_SIZE)%bufferSize)]+=1
 
-	sleep(1)
+	sleep(0.5)
 
 endPackage = MyPackage()
 endPackage.makePkg("", -1)
