@@ -4,12 +4,12 @@ from time import sleep
 from package import MyPackage
 import atexit
 
-remotePort = 12001
-localPort = 12000
+remote_port = 12001
+local_port = 12000
 clientName = 'localhost'
-clientAddress = (clientName, localPort)
+clientAddress = (clientName, remote_port)
 serverSocket = socket(AF_INET, SOCK_DGRAM)
-serverSocket.bind((clientName, localPort))
+serverSocket.bind(("", local_port))
 
 content_size = 252
 segment_size = 256
@@ -27,7 +27,6 @@ seqNum = 0
 bufferSize = 10
 buffer = [None] * bufferSize
 windowSize = 3
-windowStart = 0
 status_list = [PACKAGE_STATUS_NULL] * bufferSize
 
 
@@ -37,23 +36,6 @@ def get_first_not_acked(array):
             return i
 
     return -1
-
-
-def move_and_fill(buffer, amount):
-    count = 0
-    while count < len(buffer):
-        buffer[count] = buffer[count + amount]
-        count += 1
-
-    buffer_count = len(buffer) - amount
-    while buffer_count < bufferSize:
-        file.seek(seqNum)
-        content = file.read(content_size)
-        p = MyPackage()
-        p.makePkg(content.decode(), seqNum)
-        seqNum += content_size
-        buffer.append(p)
-        buffer_count += 1
 
 
 def fill(buffer, status_list, length):
@@ -89,7 +71,7 @@ def send_window(start, end, buffer, status_list):
         if bufferItem is not None:
             index = int((bufferItem.seqNum / MyPackage.CONTENT_SIZE) % bufferSize)
             if status_list[index] == PACKAGE_STATUS_UNSENT:
-                serverSocket.sendto(bufferItem.myEncode(), (clientName, remotePort))
+                serverSocket.sendto(bufferItem.myEncode(), clientAddress)
                 status_list[index] = PACKAGE_STATUS_SENT
                 print("Enviou mensagem / num sequencia: " + str(bufferItem.seqNum))
 
@@ -102,17 +84,10 @@ def receive_next_package():
     return package
 
 
-def ack_package_move_window(package):
-    global windowStart
-    buffer[int(((package.seqNum - MyPackage.CONTENT_SIZE) / MyPackage.CONTENT_SIZE) % bufferSize)] = None
-    print(buffer)
-    windowStart = get_first_not_acked(buffer)
-
-
 def send_end_package():
     end_package = MyPackage()
     end_package.makePkg("", -1)
-    serverSocket.sendto(end_package.myEncode(), (clientName, remotePort))
+    serverSocket.sendto(end_package.myEncode(), clientAddress)
 
 
 def reset_buffer():
@@ -132,7 +107,7 @@ def wait_for_connection():
         print("Received")
         # package.printPackage()
 
-        serverSocket.sendto(package.myEncode(), (clientName, remotePort))
+        serverSocket.sendto(package.myEncode(), clientAddress)
         print("Sent confirmation")
 
         message, client_address = serverSocket.recvfrom(segment_size)
@@ -145,19 +120,20 @@ def wait_for_connection():
 
 
 def send_file():
+
     while seqNum < file_stats:
-        global windowStart
         global buffer
         reset_buffer()
         packages_in_buffer = fill(buffer, status_list, bufferSize)
-        windowStart = 0
+        window_start = 0
 
-        send_window(windowStart, windowStart + windowSize, buffer, status_list)
+        send_window(window_start, window_start + windowSize, buffer, status_list)
         while status_list[packages_in_buffer - 1] < PACKAGE_STATUS_ACKED:
             package = receive_next_package()
             package_index_in_buffer = int(((package.seqNum - MyPackage.CONTENT_SIZE) / MyPackage.CONTENT_SIZE)
                                           % bufferSize)
 
+            # ATUALIZA STATUS DOS PACOTES
             if status_list[package_index_in_buffer] == PACKAGE_STATUS_ACKED:
                 status_list[package_index_in_buffer] = PACKAGE_STATUS_ACKED_DUP
             elif status_list[package_index_in_buffer] == PACKAGE_STATUS_ACKED_DUP:
@@ -165,9 +141,10 @@ def send_file():
             else:
                 status_list[package_index_in_buffer] = PACKAGE_STATUS_ACKED
 
-            if package_index_in_buffer >= windowStart:
-                windowStart = package_index_in_buffer + 1
-                send_window(windowStart, windowStart + windowSize, buffer, status_list)
+            # MOVE JANELA PARA DEPOIS DO INDICE DO ULTIMO PACOTE CONFIRMADO
+            if package_index_in_buffer >= window_start:
+                window_start = package_index_in_buffer + 1
+                send_window(window_start, window_start + windowSize, buffer, status_list)
 
             sleep(0.01)
 
@@ -187,7 +164,6 @@ while True:
     try:
         reset_buffer()
         seqNum = 0
-        windowStart = 0
         file = open(file_path, "rb")
         clientAddress = wait_for_connection()
     except Exception as e:
