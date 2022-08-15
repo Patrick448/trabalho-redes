@@ -109,6 +109,7 @@ def main_loop():
         # FORA DE ORDEM
         else:
             windowStart = get_first_gap(buffer)
+            nextSeqNum = windowStart*MyPackage.CONTENT_SIZE
             ack = MyPackage()
             ack.makePkg("ACK", nextSeqNum)
             clientSocket.sendto(ack.myEncode(), ("localhost", remotePort))
