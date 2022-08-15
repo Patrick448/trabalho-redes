@@ -1,4 +1,3 @@
-from importlib.resources import Package
 from socket import *
 from package import MyPackage
 from time import sleep 
@@ -20,8 +19,18 @@ windowStart = 0
 nextSeqNum =0
 receivedFilePath = "received.bin"
 
+def printList(start, end, list):
+    listSlice = slice(start, end)
+    print("PRINT WINDOW")
+    #if(end>len(list)):
+    #    end=len(list)
+
+    for i, item in enumerate(list[start:end]):
+        print(f'{start+i}: {item}')
+
 def writeBufferToFile(filePath, buffer):
 
+    print("\nWRITING BUFFER TO FILE")
     file = open(filePath,"wb+")
     for p in buffer:
         print(p)
@@ -47,7 +56,8 @@ while isWhileEnabled:
     # p.printPackage()
 
     buffer[int((p.seqNum/MyPackage.CONTENT_SIZE)%bufferSize)] = p
-    
+    printList(windowStart, windowStart+10, buffer)
+
     sleep(0.5)
     if(p.seqNum==nextSeqNum):
         ack = MyPackage()
@@ -57,10 +67,11 @@ while isWhileEnabled:
         print(p.content)
         nextSeqNum = p.seqNum + MyPackage.CONTENT_SIZE
         windowStart+=1
+    else:
+        windowStart = getFirstGap(buffer)
 
-    windowStart = (getFirstGap(buffer))%10
 
 writeBufferToFile(receivedFilePath, buffer)
-print ('\nFechando socket cliente UDP...')
+print('\nFechando socket cliente UDP...')
 clientSocket.close()
 
