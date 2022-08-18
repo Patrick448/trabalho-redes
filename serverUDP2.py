@@ -23,6 +23,7 @@ PACKAGE_STATUS_ACKED = 2
 PACKAGE_STATUS_ACKED_DUP = 3
 PACKAGE_STATUS_NULL = -1
 
+clientWindowSize = None
 seqNum = 0
 bufferSize = 10
 buffer = [None] * bufferSize
@@ -98,12 +99,14 @@ def reset_buffer():
 
 # WAIT FOR CLIENT TO REQUEST FILE
 def wait_for_connection():
+    global clientWindowSize
     print("----- Waiting for connection -----")
 
     while True:
         message, client_address = serverSocket.recvfrom(segment_size)
         package = MyPackage()
         package.myDecode(message)
+        clientWindowSize = package.seqNum
         print("Received")
         # package.printPackage()
 
@@ -127,7 +130,7 @@ def send_file():
         packages_in_buffer = fill(buffer, status_list, bufferSize)
         window_start = 0
 
-        send_window(window_start, window_start + windowSize, buffer, status_list)
+        send_window(window_start, window_start + clientWindowSize, buffer, status_list)
         while status_list[packages_in_buffer - 1] < PACKAGE_STATUS_ACKED:
             package = receive_next_package()
             package_index_in_buffer = int(((package.seqNum - MyPackage.CONTENT_SIZE) / MyPackage.CONTENT_SIZE)
@@ -144,7 +147,7 @@ def send_file():
             # MOVE JANELA PARA DEPOIS DO INDICE DO ULTIMO PACOTE CONFIRMADO
             if package_index_in_buffer >= window_start:
                 window_start = package_index_in_buffer + 1
-                send_window(window_start, window_start + windowSize, buffer, status_list)
+                send_window(window_start, window_start + clientWindowSize, buffer, status_list)
 
             sleep(0.01)
 

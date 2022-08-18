@@ -50,7 +50,7 @@ def get_first_gap(array):
 def establish_connection():
     print("ESTABLISHING CONNECTION")
     package = MyPackage()
-    package.makePkg("EST", 0)
+    package.makePkg("EST", windowSize)
     clientSocket.sendto(package.myEncode(), ("localhost", remotePort))
     print("sent connection request")
 
@@ -62,7 +62,7 @@ def establish_connection():
         print("received confirmation")
 
         package = MyPackage()
-        package.makePkg("EST", 0)
+        package.makePkg("EST", windowSize)  
         clientSocket.sendto(package.myEncode(), ("localhost", remotePort))
         print("sent final confirmation: CONNECTION ESTABLISHED")
         return
@@ -94,7 +94,7 @@ def main_loop():
         # p.printPackage()
 
         buffer[int((p.seqNum / MyPackage.CONTENT_SIZE)) % bufferSize] = p
-        print_list(windowStart, windowStart + 10, buffer)
+        print_list(windowStart, windowStart + windowSize, buffer)
         buffer_occupation += 1
         sleep(0.01)
         # SE RECEBIDO EM ORDEM

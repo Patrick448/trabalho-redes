@@ -7,6 +7,7 @@ class MyPackage:
     encodedStringTeste = bytes
     CONTENT_SIZE = 252
     SEGMENT_SIZE = 256
+    windowSize = None
 
     def __init__(self):
         pass
@@ -14,6 +15,7 @@ class MyPackage:
     def makePkg(self, content, seqNum):
         self.content = content
         self.seqNum = seqNum
+
 
     def myEncode(self):
         encoded_seq_num = int(self.seqNum).to_bytes(4, "big", signed=True)
@@ -28,3 +30,9 @@ class MyPackage:
     def printPackage(self):
         print("Numero de sequencia: " + str(self.seqNum))
         print("Conteudo: " + str(self.content))
+
+    def setWindowSize(self, windowSize):
+        self.windowSize = windowSize
+
+    def getWindowSize(self):
+        return self.windowSize
