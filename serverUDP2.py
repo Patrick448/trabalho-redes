@@ -3,6 +3,7 @@ import os
 from time import sleep
 from package import MyPackage
 import atexit
+import asyncio
 
 remote_port = 12001
 local_port = 12000
@@ -14,7 +15,7 @@ serverSocket.bind(("", local_port))
 content_size = 252
 segment_size = 256
 file = None
-file_path = "document2.bin"
+file_path = "document.bin"
 file_stats = os.stat(file_path).st_size
 
 PACKAGE_STATUS_UNSENT = 0
@@ -66,12 +67,12 @@ def fill(buffer, status_list, length):
     return buffer_count
 
 
-def send_window(start, end, buffer, status_list):
+def send_window(start, end, buffer, status_list, resend):
     print(f"Enviando janela de {start} a {end}")
     for bufferItem in buffer[start:end]:
         if bufferItem is not None:
             index = int((bufferItem.seqNum / MyPackage.CONTENT_SIZE) % bufferSize)
-            if status_list[index] == PACKAGE_STATUS_UNSENT:
+            if status_list[index] == PACKAGE_STATUS_UNSENT or resend:
                 serverSocket.sendto(bufferItem.myEncode(), clientAddress)
                 status_list[index] = PACKAGE_STATUS_SENT
                 print("Enviou mensagem / num sequencia: " + str(bufferItem.seqNum))
@@ -121,7 +122,6 @@ def wait_for_connection():
         package.printPackage()
         return client_address
 
-
 def send_file():
 
     while seqNum < file_stats:
@@ -130,7 +130,7 @@ def send_file():
         packages_in_buffer = fill(buffer, status_list, bufferSize)
         window_start = 0
 
-        send_window(window_start, window_start + clientWindowSize, buffer, status_list)
+        send_window(window_start, window_start + clientWindowSize, buffer, status_list, False)
         while status_list[packages_in_buffer - 1] < PACKAGE_STATUS_ACKED:
             package = receive_next_package()
             package_index_in_buffer = int(((package.seqNum - MyPackage.CONTENT_SIZE) / MyPackage.CONTENT_SIZE)
@@ -140,14 +140,14 @@ def send_file():
             if status_list[package_index_in_buffer] == PACKAGE_STATUS_ACKED:
                 status_list[package_index_in_buffer] = PACKAGE_STATUS_ACKED_DUP
             elif status_list[package_index_in_buffer] == PACKAGE_STATUS_ACKED_DUP:
-                print("ACK TRIPLO")
+                send_window(window_start, window_start + clientWindowSize, buffer, status_list, True)
             else:
                 status_list[package_index_in_buffer] = PACKAGE_STATUS_ACKED
 
             # MOVE JANELA PARA DEPOIS DO INDICE DO ULTIMO PACOTE CONFIRMADO
             if package_index_in_buffer >= window_start:
                 window_start = package_index_in_buffer + 1
-                send_window(window_start, window_start + clientWindowSize, buffer, status_list)
+                send_window(window_start, window_start + clientWindowSize, buffer, status_list, False)
 
             sleep(0.01)
 
@@ -175,3 +175,4 @@ while True:
         # serverSocket.close()
     else:
         send_file()
+

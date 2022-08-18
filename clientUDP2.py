@@ -1,6 +1,9 @@
-from socket import *
+from socket import socket, AF_INET, SOCK_DGRAM
 from package import MyPackage
 from time import sleep
+import random
+from datetime import datetime
+
 
 serverName = 'localhost'
 remotePort = 12000
@@ -13,11 +16,13 @@ print('Cliente aguardando...')
 
 bufferSize = 5
 buffer = [None] * bufferSize
-windowSize = 10
+windowSize = 3
 windowStart = 0
 nextSeqNum = 0
 receivedFilePath = "received.bin"
 
+#todo: criar campo window_size pacote e mudar a codificação e decodificaçãp
+#todo: criar temporizador no servidor
 
 def print_list(start, end, list):
     print("PRINT WINDOW")
@@ -46,6 +51,7 @@ def get_first_gap(array):
         if item is None:
             return i
 
+    return len(array)
 
 def establish_connection():
     print("ESTABLISHING CONNECTION")
@@ -76,6 +82,7 @@ def main_loop():
     is_while_enabled = True
     buffer_occupation = 0
     create_file(receivedFilePath)
+    last_buffer_iteration_seq_num = 0
 
     while is_while_enabled:
         print("\n------------\n")
@@ -87,15 +94,29 @@ def main_loop():
             write_buffer_to_file(receivedFilePath, buffer)
             buffer = [None] * bufferSize
             buffer_occupation = 0
+            windowStart = 0
+            last_buffer_iteration_seq_num += nextSeqNum
 
         if p.seqNum < 0:
             is_while_enabled = False
             break
         # p.printPackage()
 
-        buffer[int((p.seqNum / MyPackage.CONTENT_SIZE)) % bufferSize] = p
-        print_list(windowStart, windowStart + windowSize, buffer)
-        buffer_occupation += 1
+        package_index_in_buffer = int((p.seqNum / MyPackage.CONTENT_SIZE)) % bufferSize
+        random.seed(datetime.now().timestamp())
+
+        if package_index_in_buffer >= windowStart and p.seqNum >= last_buffer_iteration_seq_num:
+            random_discard = random.choices([False, True], [80, 20], k=1)
+            print(random_discard)
+            if random_discard[0] is False:
+                if buffer[package_index_in_buffer] is None:
+                    buffer[package_index_in_buffer] = p
+                    print_list(windowStart, windowStart + windowSize, buffer)
+                    buffer_occupation += 1
+            else:
+                print(f"discarded {p.seqNum}")
+                continue
+
         sleep(0.01)
         # SE RECEBIDO EM ORDEM
         if p.seqNum == nextSeqNum:
@@ -109,12 +130,14 @@ def main_loop():
         # FORA DE ORDEM
         else:
             windowStart = get_first_gap(buffer)
-            nextSeqNum = windowStart*MyPackage.CONTENT_SIZE
+            nextSeqNum = last_buffer_iteration_seq_num + windowStart*MyPackage.CONTENT_SIZE
             ack = MyPackage()
             ack.makePkg("ACK", nextSeqNum)
             clientSocket.sendto(ack.myEncode(), ("localhost", remotePort))
-            print("ACK dup: " + nextSeqNum)
+            print("ACK dup: " + str(nextSeqNum))
             print(p.content)
+
+
 
     print('\nFechando socket cliente UDP...')
     clientSocket.close()
