@@ -57,12 +57,10 @@ def fill(buffer, status_list, length):
         buffer[index] = p
         status_list[index] = PACKAGE_STATUS_UNSENT
 
-        print("Conteudo: " + p.content)
+        #print("Conteudo: " + p.content)
         buffer_count += 1
 
         if len(content) < content_size:
-            print(
-                "###################################################################################################################################")
             return buffer_count
 
     return buffer_count
@@ -83,7 +81,7 @@ def receive_next_package():
     message, client_address = serverSocket.recvfrom(segment_size)
     package = MyPackage()
     package.myDecode(message)
-    package.printPackage()
+    #package.printPackage()
     return package
 
 
@@ -120,7 +118,7 @@ def wait_for_connection():
         package.myDecode(message)
         print("Received final confirmation: CONNECTION ESTABLISHED")
 
-        package.printPackage()
+        #package.printPackage()
         return client_address
 
 
