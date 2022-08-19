@@ -16,7 +16,7 @@ serverSocket.bind(("", local_port))
 content_size = MyPackage.CONTENT_SIZE
 segment_size = MyPackage.SEGMENT_SIZE
 file = None
-file_path = "arquivo_teste2.txt"
+file_path = "arquivo_teste.txt"
 file_stats = os.stat(file_path).st_size
 
 PACKAGE_STATUS_UNSENT = 0
