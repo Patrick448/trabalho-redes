@@ -5,8 +5,8 @@ class MyPackage:
     content = ""
     seqNum = 0
     encodedStringTeste = bytes
-    CONTENT_SIZE = 252
-    SEGMENT_SIZE = 256
+    CONTENT_SIZE = 1020
+    SEGMENT_SIZE = 1024
     windowSize = None
 
     def __init__(self):

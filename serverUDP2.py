@@ -1,9 +1,10 @@
+from functools import partial
 from socket import *
 import os
+from threading import Timer
 from time import sleep
 from package import MyPackage
 import atexit
-import asyncio
 
 remote_port = 12001
 local_port = 12000
@@ -12,10 +13,10 @@ clientAddress = (clientName, remote_port)
 serverSocket = socket(AF_INET, SOCK_DGRAM)
 serverSocket.bind(("", local_port))
 
-content_size = 252
-segment_size = 256
+content_size = MyPackage.CONTENT_SIZE
+segment_size = MyPackage.SEGMENT_SIZE
 file = None
-file_path = "document.bin"
+file_path = "arquivo_teste2.txt"
 file_stats = os.stat(file_path).st_size
 
 PACKAGE_STATUS_UNSENT = 0
@@ -26,7 +27,7 @@ PACKAGE_STATUS_NULL = -1
 
 clientWindowSize = None
 seqNum = 0
-bufferSize = 10
+bufferSize = 100
 buffer = [None] * bufferSize
 windowSize = 3
 status_list = [PACKAGE_STATUS_NULL] * bufferSize
@@ -122,16 +123,21 @@ def wait_for_connection():
         package.printPackage()
         return client_address
 
-def send_file():
 
+def send_file():
+    t = None
     while seqNum < file_stats:
         global buffer
         reset_buffer()
         packages_in_buffer = fill(buffer, status_list, bufferSize)
         window_start = 0
+        g = partial(send_window, 0, clientWindowSize, buffer, status_list, True)
+        t = Timer(0.001, g)
+        t.start()
 
         send_window(window_start, window_start + clientWindowSize, buffer, status_list, False)
         while status_list[packages_in_buffer - 1] < PACKAGE_STATUS_ACKED:
+
             package = receive_next_package()
             package_index_in_buffer = int(((package.seqNum - MyPackage.CONTENT_SIZE) / MyPackage.CONTENT_SIZE)
                                           % bufferSize)
@@ -148,9 +154,14 @@ def send_file():
             if package_index_in_buffer >= window_start:
                 window_start = package_index_in_buffer + 1
                 send_window(window_start, window_start + clientWindowSize, buffer, status_list, False)
+                t.cancel()
+                g = partial(send_window, window_start, window_start + clientWindowSize, buffer, status_list, True)
+                t = Timer(0.001, g)
+                t.start()
 
-            sleep(0.01)
+            #sleep(0.01)
 
+    t.cancel()
     send_end_package()
     print('\nCLOSING CONNECTION...')
     file.close()

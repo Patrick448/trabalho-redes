@@ -11,18 +11,15 @@ localPort = 12001
 clientSocket = socket(AF_INET, SOCK_DGRAM)
 clientSocket.bind((serverName, localPort))
 
-segment_size = 256
-print('Cliente aguardando...')
+segment_size = MyPackage.SEGMENT_SIZE
+#print('Cliente aguardando...')
 
-bufferSize = 5
+bufferSize = 100
 buffer = [None] * bufferSize
-windowSize = 3
+windowSize = 10
 windowStart = 0
 nextSeqNum = 0
 receivedFilePath = "received.bin"
-
-#todo: criar campo window_size pacote e mudar a codificação e decodificaçãp
-#todo: criar temporizador no servidor
 
 def print_list(start, end, list):
     print("PRINT WINDOW")
@@ -41,7 +38,7 @@ def write_buffer_to_file(file_path, buffer):
     for p in buffer:
         print(p)
         if p is not None:
-            file.write("\n------\n".encode() + str(p.seqNum).encode() + p.content.encode())
+            file.write(p.content.encode())
 
     file.close()
 
@@ -84,7 +81,7 @@ def main_loop():
     create_file(receivedFilePath)
     last_buffer_iteration_seq_num = 0
 
-    while is_while_enabled:
+    while True:
         print("\n------------\n")
         message, client_address = clientSocket.recvfrom(segment_size)
         p = MyPackage()
@@ -98,15 +95,13 @@ def main_loop():
             last_buffer_iteration_seq_num += nextSeqNum
 
         if p.seqNum < 0:
-            is_while_enabled = False
             break
-        # p.printPackage()
 
         package_index_in_buffer = int((p.seqNum / MyPackage.CONTENT_SIZE)) % bufferSize
         random.seed(datetime.now().timestamp())
 
         if package_index_in_buffer >= windowStart and p.seqNum >= last_buffer_iteration_seq_num:
-            random_discard = random.choices([False, True], [80, 20], k=1)
+            random_discard = random.choices([False, True], [98, 2], k=1)
             print(random_discard)
             if random_discard[0] is False:
                 if buffer[package_index_in_buffer] is None:
@@ -117,7 +112,7 @@ def main_loop():
                 print(f"discarded {p.seqNum}")
                 continue
 
-        sleep(0.01)
+        #sleep(0.01)
         # SE RECEBIDO EM ORDEM
         if p.seqNum == nextSeqNum:
             ack = MyPackage()
