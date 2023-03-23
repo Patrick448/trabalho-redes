@@ -61,12 +61,12 @@ def establish_connection():
         message, client_address = clientSocket.recvfrom(segment_size)
         package = MyPackage()
         package.myDecode(message)
-        print("received confirmation")
+        #print("received confirmation")
 
         package = MyPackage()
         package.makePkg("EST", windowSize)  
         clientSocket.sendto(package.myEncode(), ("localhost", remotePort))
-        print("sent final confirmation: CONNECTION ESTABLISHED")
+        #print("sent final confirmation: CONNECTION ESTABLISHED")
         return
 
 
@@ -101,14 +101,14 @@ def main_loop():
 
         if package_index_in_buffer >= windowStart and p.seqNum >= last_buffer_iteration_seq_num:
             random_discard = random.choices([False, True], [98, 2], k=1)
-            #print(random_discard)
+            print(random_discard)
             if random_discard[0] is False:
                 if buffer[package_index_in_buffer] is None:
                     buffer[package_index_in_buffer] = p
-                    #print_list(windowStart, windowStart + windowSize, buffer)
+                    print_list(windowStart, windowStart + windowSize, buffer)
                     buffer_occupation += 1
             else:
-                #print(f"discarded {p.seqNum}")
+                print(f"discarded {p.seqNum}")
                 continue
 
         #sleep(0.01)
@@ -117,8 +117,8 @@ def main_loop():
             ack = MyPackage()
             ack.makePkg("ACK", p.seqNum + MyPackage.CONTENT_SIZE)
             clientSocket.sendto(ack.myEncode(), ("localhost", remotePort))
-            #print("ACK: " + str(p.seqNum + len(message) + 1))
-            #print(p.content)
+            print("ACK: " + str(p.seqNum + len(message) + 1))
+            print(p.content)
             nextSeqNum = p.seqNum + MyPackage.CONTENT_SIZE
             windowStart += 1
         # FORA DE ORDEM
@@ -128,8 +128,8 @@ def main_loop():
             ack = MyPackage()
             ack.makePkg("ACK", nextSeqNum)
             clientSocket.sendto(ack.myEncode(), ("localhost", remotePort))
-            #print("ACK dup: " + str(nextSeqNum))
-            #print(p.content)
+            print("ACK dup: " + str(nextSeqNum))
+            print(p.content)
 
 
 
